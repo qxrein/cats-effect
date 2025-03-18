@@ -316,8 +316,6 @@ ThisBuild / apiURL := Some(url("https://typelevel.org/cats-effect/api/3.x/"))
 
 ThisBuild / autoAPIMappings := true
 
-ThisBuild / Test / testOptions += Tests.Argument("+l")
-
 val CatsVersion = "2.11.0"
 val CatsMtlVersion = "1.3.1"
 val ScalaCheckVersion = "1.17.1"
@@ -400,7 +398,8 @@ lazy val rootJVM = project
     benchmarks)
   .enablePlugins(NoPublishPlugin)
 
-lazy val rootJS = project.aggregate(jsProjects: _*).enablePlugins(NoPublishPlugin)
+lazy val rootJS =
+  project.aggregate(jsProjects: _*).aggregate(testsJS).enablePlugins(NoPublishPlugin)
 
 lazy val rootNative = project.aggregate(nativeProjects: _*).enablePlugins(NoPublishPlugin)
 
@@ -1144,3 +1143,42 @@ lazy val docs = project
   .dependsOn(core.jvm)
   .enablePlugins(MdocPlugin)
   .settings(tlFatalWarnings := { if (tlIsScala3.value) false else tlFatalWarnings.value })
+
+lazy val wasmSettings = Seq(
+  scalaJSLinkerConfig := {
+    scalaJSLinkerConfig
+      .value
+      .withExperimentalUseWebAssembly(true) // Enable WebAssembly backend
+      .withModuleKind(ModuleKind.ESModule) // Required for WebAssembly
+  },
+  jsEnv := {
+    import org.scalajs.jsenv.nodejs.NodeJSEnv
+    val config = NodeJSEnv
+      .Config()
+      .withArgs(
+        List(
+          "--experimental-wasm-exnref",
+          "--experimental-wasm-imported-strings",
+          "--turboshaft-wasm"
+        ))
+    new NodeJSEnv(config)
+  }
+)
+
+lazy val testsJS = tests
+  .js
+  .settings(wasmSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.1.1" % Test,
+      "org.scalatest" %%% "scalatest" % "3.2.18" % Test,
+      "co.fs2" %%% "fs2-io" % "3.9.4" % Test
+    ),
+    Test / testOptions := Seq(
+      Tests.Filter(test => !test.contains("UnsupportedSuite"))
+    ), // Exclude unsupported tests
+    Test / scalaJSUseMainModuleInitializer := false,
+    Test / fork := false
+  )
+
+resolvers += "Scala.js Repository" at "https://repo.scala-js.org/releases" // Add the Scala.js repository

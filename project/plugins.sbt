@@ -10,3 +10,5 @@ addSbtPlugin("com.lightbend.sbt" % "sbt-java-formatter" % "0.8.0")
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.13.1")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.2")
 addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.3.4")
+libraryDependencies += "org.scala-js" %% "scalajs-env-nodejs" % "1.4.0"
+libraryDependencies += "org.scala-js" %% "scalajs-linker-interface" % "1.17.0"
